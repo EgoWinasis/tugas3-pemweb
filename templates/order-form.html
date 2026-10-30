@@ -1,0 +1,16 @@
+<form @submit.prevent="submit" @keydown.enter.prevent="submit">
+  <div class="form-grid">
+    <div class="field"><label>NIM *</label><input v-model.trim="form.nim" inputmode="numeric" placeholder="Masukkan NIM" required></div>
+    <div class="field"><label>Nama Mahasiswa *</label><input v-model.trim="form.nama" placeholder="Nama lengkap" required></div>
+    <div class="field"><label>Ekspedisi *</label><select v-model="form.ekspedisi"><option>JNE Regular</option><option>JNE Express</option></select></div>
+    <div class="field"><label>Paket Bahan Ajar *</label><select v-model="form.paket"><option v-for="item in packages" :key="item.kode" :value="item.kode">{{ item.kode }} — {{ item.nama }}</option></select></div>
+    <div class="field"><label>Tanggal Kirim *</label><input v-model="form.tanggalKirim" type="date" required></div>
+    <div class="package-detail" v-if="selectedPackage">
+      <strong>Isi {{ selectedPackage.nama }}</strong>
+      <div class="package-items"><span v-for="kode in selectedPackage.isi" :key="kode">{{ kode }}</span></div>
+      <div class="package-price">Total: <strong>{{ new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(selectedPackage.harga) }}</strong></div>
+    </div>
+    <p v-if="error" class="form-error full-width">{{ error }}</p>
+    <div class="form-actions full-width"><button type="button" class="btn btn-light" @click="$emit('cancel')">Batal</button><button type="submit" class="btn btn-primary">Buat Delivery Order</button></div>
+  </div>
+</form>

@@ -1,0 +1,61 @@
+<section>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon blue">▤</div><div><small>Total jenis bahan ajar</small><strong>{{ stocks.length }}</strong></div></div>
+    <div class="stat-card"><div class="stat-icon green">▣</div><div><small>Total stok tersedia</small><strong>{{ totalStock.toLocaleString('id-ID') }} <small>buah</small></strong></div></div>
+    <div class="stat-card"><div class="stat-icon orange">▲</div><div><small>Perlu perhatian</small><strong>{{ lowCount }}</strong></div></div>
+    <div class="stat-card"><div class="stat-icon red">●</div><div><small>Stok kosong</small><strong>{{ emptyCount }}</strong></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-heading">
+      <div><h2>Daftar Persediaan</h2><p>Data bahan ajar berdasarkan file JSON dummy.</p></div>
+      <button class="btn btn-primary" @click="openAdd">＋ Tambah Bahan Ajar</button>
+    </div>
+    <div class="filter-area">
+      <div class="field search-field"><label>Cari bahan ajar</label><input v-model.trim="search" type="search" placeholder="Cari kode atau judul..."></div>
+      <div class="field"><label>UT-Daerah</label><select v-model="selectedUpbjj"><option value="">Semua UPBJJ</option><option v-for="upbjj in upbjjList" :key="upbjj" :value="upbjj">{{ upbjj }}</option></select></div>
+      <div class="field"><label>Kategori</label><select v-model="selectedKategori" :disabled="!selectedUpbjj"><option value="">Semua kategori</option><option v-for="kategori in kategoriOptions" :key="kategori" :value="kategori">{{ kategori }}</option></select></div>
+      <div class="field"><label>Kondisi stok</label><select v-model="stockMode"><option value="all">Semua stok</option><option value="safe">Aman</option><option value="low">Menipis</option><option value="empty">Kosong</option><option value="reorder">Perlu reorder</option></select></div>
+      <div class="field"><label>Urutkan berdasarkan</label><div class="sort-control"><select v-model="sortBy"><option value="judul">Judul</option><option value="qty">Jumlah stok</option><option value="harga">Harga</option></select><button class="btn btn-light sort-button" @click="sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'">{{ sortDirection === 'asc' ? '↑' : '↓' }}</button></div></div>
+      <button class="btn btn-outline reset-button" @click="resetFilters">Reset</button>
+    </div>
+
+    <div class="table-summary"><span>Menampilkan <strong>{{ filteredStocks.length }}</strong> dari {{ stocks.length }} data</span><span class="legend"><i class="legend-dot green-dot"></i>Aman <i class="legend-dot orange-dot"></i>Menipis <i class="legend-dot red-dot"></i>Kosong</span></div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>Kode / Nama Mata Kuliah</th><th>Kategori</th><th>UT-Daerah</th><th>Lokasi Rak</th><th>Harga</th><th>Stok</th><th>Safety Stock</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody>
+          <tr v-for="item in filteredStocks" :key="item.kode">
+            <td><strong class="course-code">{{ item.kode }}</strong><span class="course-title">{{ item.judul }}</span></td>
+            <td><span class="category-tag">{{ item.kategori }}</span></td><td>{{ item.upbjj }}</td><td>{{ item.lokasiRak }}</td>
+            <td class="nowrap">{{ formatRupiah(item.harga) }}</td><td><strong>{{ formatBuah(item.qty) }}</strong></td><td>{{ formatBuah(item.safety) }}</td>
+            <td><status-badge :qty="Number(item.qty)" :safety="Number(item.safety)" :note="item.catatanHTML"></status-badge></td>
+            <td><div class="action-group"><button class="icon-button edit" title="Edit" @click="openEdit(item)">✎</button><button class="icon-button delete" title="Hapus" @click="askDelete(item)">⌫</button></div></td>
+          </tr>
+          <tr v-if="filteredStocks.length === 0"><td colspan="9" class="empty-state">Tidak ada data yang sesuai dengan filter.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <app-modal :show="showForm" :title="editingCode ? 'Edit Bahan Ajar' : 'Tambah Bahan Ajar Baru'" @close="showForm=false">
+    <form class="form-grid" @submit.prevent="saveForm" @keydown.enter.prevent="saveForm">
+      <div class="field"><label>Kode Mata Kuliah *</label><input v-model="form.kode" :disabled="!!editingCode" placeholder="Contoh: EKMA4116" required></div>
+      <div class="field"><label>Nama Mata Kuliah *</label><input v-model="form.judul" placeholder="Nama mata kuliah" required></div>
+      <div class="field"><label>Kategori *</label><select v-model="form.kategori"><option v-for="item in kategoriList" :key="item">{{ item }}</option></select></div>
+      <div class="field"><label>UT-Daerah *</label><select v-model="form.upbjj"><option v-for="item in upbjjList" :key="item">{{ item }}</option></select></div>
+      <div class="field"><label>Lokasi Rak *</label><input v-model="form.lokasiRak" placeholder="Contoh: R1-A1" required></div>
+      <div class="field"><label>Harga (Rp) *</label><input v-model.number="form.harga" type="number" min="0" required></div>
+      <div class="field"><label>Jumlah Stok (buah) *</label><input v-model.number="form.qty" type="number" min="0" required></div>
+      <div class="field"><label>Safety Stock (buah) *</label><input v-model.number="form.safety" type="number" min="0" required></div>
+      <div class="field full-width"><label>Catatan (HTML diperbolehkan)</label><textarea v-model="form.catatanHTML" rows="2" placeholder="Catatan bahan ajar..."></textarea></div>
+      <p v-if="formError" class="form-error full-width">{{ formError }}</p>
+      <div class="form-actions full-width"><button type="button" class="btn btn-light" @click="showForm=false">Batal</button><button type="submit" class="btn btn-primary">{{ editingCode ? 'Simpan Perubahan' : 'Tambah Data' }}</button></div>
+    </form>
+  </app-modal>
+
+  <app-modal :show="showDelete" title="Konfirmasi Hapus" @close="showDelete=false">
+    <p>Apakah Anda yakin ingin menghapus bahan ajar <strong>{{ deleteTarget ? deleteTarget.judul : '' }}</strong>?</p>
+    <template v-slot:footer><button class="btn btn-light" @click="showDelete=false">Batal</button><button class="btn btn-danger" @click="confirmDelete">Ya, Hapus</button></template>
+  </app-modal>
+</section>

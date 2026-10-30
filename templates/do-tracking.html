@@ -1,0 +1,47 @@
+<section>
+  <div class="tracking-banner">
+    <div><span class="eyebrow light-eyebrow">PUSAT INFORMASI PENGIRIMAN</span><h2>Pastikan bahan ajar sampai tepat waktu.</h2><p>Masukkan nomor DO atau NIM untuk melihat detail pengiriman.</p></div>
+    <div class="banner-icon">⇢</div>
+  </div>
+  <div class="panel">
+    <div class="panel-heading"><div><h2>Pelacakan Pengiriman</h2><p>Telusuri nomor Delivery Order atau NIM mahasiswa.</p></div><button class="btn btn-primary" @click="showOrderForm=true">＋ Buat DO Baru</button></div>
+    <div class="search-row">
+      <div class="search-box"><span>⌕</span><input v-model.trim="query" @keyup.enter="submitSearch" @keyup.esc="clearSearch" placeholder="Contoh: DO2025-0001 atau 123456789"><button v-if="query" class="clear-search" @click="clearSearch">×</button></div>
+      <button class="btn btn-primary" @click="submitSearch">Cari Pengiriman</button><button class="btn btn-light" @click="clearSearch">Reset</button>
+    </div>
+    <p v-show="!submittedQuery" class="search-hint">Tekan Enter untuk mencari dan Esc untuk menghapus kata kunci.</p>
+    <div class="table-summary"><span><strong>{{ trackingRows.length }}</strong> data pengiriman ditemukan</span><span v-if="submittedQuery">Hasil pencarian: “{{ submittedQuery }}”</span></div>
+
+    <div v-if="trackingRows.length" class="do-list">
+      <article v-for="record in trackingRows" :key="record.nomorDO" class="do-card">
+        <div class="do-card-top">
+          <div><span class="do-label">DELIVERY ORDER</span><h3>{{ record.nomorDO }}</h3><p>{{ record.nama }} · NIM {{ record.nim }}</p></div>
+          <span class="do-status" :class="record.status === 'Dalam Perjalanan' ? 'status-transit' : 'status-process'">{{ record.status }}</span>
+        </div>
+        <div class="do-info-grid">
+          <div><small>Ekspedisi</small><strong>{{ record.ekspedisi }}</strong></div>
+          <div><small>Tanggal Kirim</small><strong>{{ formatDate(record.tanggalKirim) }}</strong></div>
+          <div><small>Paket Bahan Ajar</small><strong>{{ packageName(record.paket) }}</strong><small>{{ record.paket }}</small></div>
+          <div><small>Total Harga</small><strong>{{ formatRupiah(record.total) }}</strong></div>
+        </div>
+        <div class="progress-heading"><strong>Riwayat Perjalanan</strong><button class="text-button" @click="openProgress(record)">＋ Tambah status</button></div>
+        <div class="timeline">
+          <div v-for="(step, index) in record.perjalanan" :key="index" class="timeline-item"><span class="timeline-point"></span><div><strong>{{ step.keterangan }}</strong><small>{{ formatDateTime(step.waktu) }}</small></div></div>
+          <div v-if="!record.perjalanan.length" class="muted">Belum ada informasi perjalanan.</div>
+        </div>
+      </article>
+    </div>
+    <div v-else class="empty-state large-empty"><div>⌕</div><strong>Data pengiriman tidak ditemukan</strong><span>Periksa kembali nomor DO atau NIM yang dimasukkan.</span></div>
+  </div>
+
+  <app-modal :show="showOrderForm" title="Buat Delivery Order Baru" @close="showOrderForm=false">
+    <order-form :packages="packages" :upbjj-list="upbjjList" @submit="addOrder" @cancel="showOrderForm=false"></order-form>
+  </app-modal>
+
+  <app-modal :show="!!progressTarget" title="Tambah Status Perjalanan" @close="progressTarget=null">
+    <div class="field"><label>Nomor DO</label><input :value="progressTarget ? progressTarget.nomorDO : ''" disabled></div>
+    <div class="field spaced-field"><label>Keterangan perjalanan *</label><textarea v-model="progressText" rows="3" placeholder="Contoh: Paket telah tiba di kantor cabang Semarang"></textarea></div>
+    <p v-if="progressError" class="form-error">{{ progressError }}</p>
+    <template v-slot:footer><button class="btn btn-light" @click="progressTarget=null">Batal</button><button class="btn btn-primary" @click="saveProgress">Simpan Status</button></template>
+  </app-modal>
+</section>

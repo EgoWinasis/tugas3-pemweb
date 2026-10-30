@@ -1,0 +1,4 @@
+<span class="status-wrap" :title="note || 'Status persediaan'">
+  <span class="status-pill" :class="status.className"><span>{{ status.icon }}</span> <span v-text="status.label"></span></span>
+  <span v-if="note" class="tooltip-card" v-html="note"></span>
+</span>
